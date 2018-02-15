@@ -8,6 +8,8 @@ library(lmtest)
 library(xts)
 library(stargazer)
 library(MTS)
+library(ggplot2)
+library(ggthemes)
 
 # (1) Load data ####
 
@@ -166,32 +168,40 @@ hit.seq.insample = function(fit.model, alpha = 0.05) {
 }
 
 VaR.outsample = function(for.model, dist, alpha = 0.05, 
-                             mu=0, sigma=1, lambda=-0.5, skew=1, shape=5) {
-  critical = qdist(distribution = dist , p = alpha, mu=mu, sigma=sigma, lambda = lambda, skew=skew, shape=shape)
+                             mu, sigma, lambda, skew, shape) {
+  critical = qdist(distribution = dist , p = alpha, 
+                   mu, sigma, lambda, skew, shape)
   
   VaR = for.model@forecast$seriesFor[1,] - abs(critical*for.model@forecast$sigmaFor[1,])
   return(VaR)
   }
 
 
-hit.seq.outsample = function(for.model, dist, alpha = 0.05) {
-  VaR = VaR.outsample(for.model, dist, alpha)
+hit.seq.outsample = function(for.model, dist, alpha = 0.05,
+                             mu, sigma, lambda, skew, shape) {
+  VaR = VaR.outsample(for.model, dist, alpha, mu, sigma, lambda, skew, shape)
   # Hit Sequence
-  n = length(spyder.daily[1998:length(spyder.daily)])
+  y = spyder.daily[1998:length(spyder.daily)]
+  n = length(y)
   hit = rep(0, n)
   for (i in 1:n){
-    if(spyder.daily[i] < VaR[i]){
+    if(y[i] < VaR[i]){
       hit[i] = 1
     }
   }
   return(hit)
 }
 
-violation.diff = function(hit, fit.model, alpha = 0.05){
-  VaR = quantile(fit.model, alpha)
+violation.diff = function(hit, VaR, set, alpha = 0.05){
+  
+  if (set == "in-sample"){
+    y = spyder.daily[1:1997]
+  } else {
+    y = spyder.daily[1998:length(spyder.daily)]
+  }
   n = length(hit)
   diff=rep(0,n)
-  diff[which(hit==1)] = spyder.daily[which(hit==1)] - VaR[which(hit==1)]
+  diff[which(hit==1)] = y[which(hit==1)] - VaR[which(hit==1)]
   return(diff)
 }
 
@@ -320,14 +330,19 @@ for.model_5 = forecast_garch(model_5)
 for.model_6 = forecast_garch(model_6)
 
 
-# (7.2) Out-sample Diagnostics ####
+# (7.2) Diagnostics ####
 
 # Apply model!!!!!-------#
 model = model_1
 for.model = for.model_1
 #------------------------#
 
+# in-sample
+show(model)
+
+# out-sample
 accuracy.vol(for.model)
+jarque.bera.test(std.res(for.model))
 boxtest.z(for.model)
 boxtest.sqz(for.model)
 archtest.z(for.model)
@@ -337,8 +352,8 @@ jarque.bera.test(std.res(for.model))
 # (7.3) Plot Models ####
 
 # Apply model!!!!!-------#
-model = model_1
-for.model = for.model_1
+model = model_2
+for.model = for.model_2
 #------------------------#
 
 show(model)
@@ -349,26 +364,69 @@ plot(for.model)
 # (7) VaR Test ####
 
 # Apply model!!!!!-------#
-model = model_1
-for.model = for.model_1
+model = model_3
+for.model = for.model_3
 #------------------------#
 
-hit = hit.seq.insample(model)
-length(which(hit==1)) / length(hit) # violation rate
-diff = violation.diff(hit, model) # violation diff.
+## In Sample
+VaR.in =  quantile(model, 0.05)
+hit.in = hit.seq.insample(model)
+length(which(hit.in==1)) / length(hit.in) # violation rate
+diff.in = violation.diff(hit.in, VaR.in, set="in-sample", alpha=0.05)
 
-#plot.ts(diff, ylim = c(-0.04, 0))
-test1.uncond(hit)
-test2.ind(hit)
-test3.explain(hit, set = "in-sample")
+# plot
+df = data.frame(x = 1:length(diff.in), y = diff.in)
+ggplot(df, aes(x=x, y = y)) +
+  geom_col(color = "red") + 
+  ylim(-0.015, 0.001) +
+  theme_classic() + 
+  xlab("Time") +
+  ylab("VaR Violation") +
+  ggtitle("[1] In-sample") # change title
 
+test1.uncond(hit.in)
+test2.ind(hit.in)
+test3.explain(hit.in, set = "in-sample")
 
-hit.out = hit.seq.outsample(for.model, dist = "ged")
-length(which(hit1.out==1)) / length(hit.out) # violation rate
-diff.out = violation.diff(hit, model) # violation diff.
+## Out-sample
 
-#plot.ts(diff.out)
+# Apply model!!!!!-------#
+model = model_6
+for.model = for.model_6
+#------------------------#
+show(model)
+
+mu = 0.0006 # change the estimated par
+sigma = 1
+lambda = -0.5
+skew = 1
+shape = 6.744934 # change the estimated par
+dist = "std"
+
+VaR.out = VaR.outsample(for.model, dist, alpha = 0.05, 
+                          mu, sigma, lambda, skew, shape)
+
+hit.out = hit.seq.outsample(for.model, dist, alpha=0.05,
+                            mu, sigma, lambda, skew, shape)
+
+length(which(hit.out==1)) / length(hit.out) # violation rate
+diff.out = violation.diff(hit.out, VaR.out, set="out-sample", alpha=0.05) # violation diff.
+
+# out-sample plot
+df = data.frame(x = 1:length(diff.out), y = diff.out)
+ggplot(df, aes(x=x, y = y)) +
+  geom_col(color = "red") + 
+  ylim(-0.015, 0.001) +
+  theme_classic() + 
+  xlab("Time") +
+  ylab("VaR Violation") +
+  ggtitle("EGARCH (2,1) - Student Error (Violation rate: 5.8%)") # change title 
+
 test1.uncond(hit.out)
 test2.ind(hit.out)
 test3.explain(hit.out, set = "out-sample")
 
+ylim = c(-0.03, 0)
+plot.ts(VaR.out, ylim=ylim)
+par(new=TRUE)
+plot.ts(spyder.daily[1998:length(spyder.daily)], col="red", ylim=ylim)
