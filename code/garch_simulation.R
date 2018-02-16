@@ -1,7 +1,7 @@
 library(timeSeries)
-library(ggplot2)
+library(dplyr)
 library(tidyr)
-library(psych)
+library(ggplot2)
 
 ## (0) Setting simulation parameters ###############
 
@@ -9,7 +9,7 @@ R = 100 # num of replicate
 n = 1000 # num of obs
 
 #(mu, omega, alpha, beta, theta)
-design = 1
+design = 2
 
 #equation of ht
 eq = 1 
@@ -38,13 +38,13 @@ if (design == 2) {
   theta = 2
 }
 
-if (dist == "norm"){
+if (garch.dist == "norm"){
   z.random = function(n){
     rnorm(n,0,1)
   }
 }
 
-if (dist == "std"){
+if (garch.dist == "std"){
   z.random = function(n){
     rt(n, df=10)
   }
@@ -65,7 +65,7 @@ if (eq == 2){
 #---------------------------------------#
 ## (2) Create the GARCH series #######
 
-garch.sim <- function (n, n.start = 250, mu, omega, alpha, beta, theta, distribution=dist) {
+garch.sim <- function (n, n.start = 250, mu, omega, alpha, beta, theta) {
   
   n = n + n.start # burnt-in
   mu = mu; omega = omega; alpha = alpha; beta = beta; theta = theta
@@ -108,7 +108,7 @@ if (garch.dist == "norm"){
 }
 
 if (garch.dist == "std"){
-  garchDist = function(z,hh){dt(x=z/hh, df=10)/hh}
+  garchDist = function(z, hh){dt(x=z/hh, df=10)/hh}
 }
 
 ### (2.3) LLH Obj function ####
@@ -119,9 +119,10 @@ garchLLH = function(parm, series){
   Mean = mean((z^2)) # first-term
   
   # Use Filter Representation
-  e = h.equation(omega, alpha, Mean, z, series, theta)
+  #e = h.equation(omega, alpha, Mean, z, series, theta)
+  e = omega + alpha*c(Mean, (z[-length(series)] - theta)^2)
   
-  h = filter(e, beta, "r", init = Mean)
+  h = timeSeries::filter(e, beta, "r", init = Mean)
   hh = sqrt(abs(h))
   llh = -sum(log(garchDist(z, hh))) # use garchDist
   llh
@@ -160,11 +161,13 @@ for (i in 1:R){
 # estimate averaring over replicates
 est = colMeans(mat) 
 sd.est = colSds(mat) 
-# reported results
+
 est
 sd.est
 
-# visualize
+
+
+# Combine data
 if (n == 100){
   est.param.100 = data.frame(n = rep("100", R), mat)
   names(est.param.100) = c("n","mu", "omega", "alpha", "beta", "theta")
@@ -176,33 +179,20 @@ if (n==1000){
   names(est.param.1000) = c("n","mu", "omega", "alpha", "beta", "theta")
   est.param.1000 = gather(est.param.1000, parameter, estimation, mu:theta, factor_key=TRUE)
 }
-est.param.1000 = data.frame(n = rep("1000", R), mat)
-names(est.param.1000) = c("n","mu", "omega", "alpha", "beta", "theta")
 
 estimate.result = rbind(est.param.100, est.param.1000)
+#write.csv(estimate.result, file = "results/design2_eq1_norm.csv")
 
-est.param = est.param.1000
-ggplot(data=est.param.100, aes(x = mu)) +
-  geom_histogram(bins = 30) +
-  geom_vline(data = est.param.100, aes(xintercept = mean(mu)), linetype = "dashed", size = 1) + 
-  geom_vline(aes(xintercept=0), color = "red", size = 1) 
+## (4) Plot ##############################################
 
-ggplot(data=est.param.100, aes(x = omega)) +
-  geom_histogram(bins = 30) +
-  geom_vline(data = est.param.100, aes(xintercept = mean(omega)), linetype = "dashed", size = 1) + 
-  geom_vline(aes(xintercept=0.01), color = "red", size = 1)
+# set reference lines
+vline.dat <- data.frame(parameter=levels(estimate.result$parameter), vl= c(0, 0.01, 0.05, 0.6, 2)) # change
 
-ggplot(data=est.param.100, aes(x = alpha)) +
-  geom_histogram(bins = 30) +
-  geom_vline(data = est.param.100, aes(xintercept = mean(alpha)), linetype = "dashed", size = 1) + 
-  geom_vline(aes(xintercept=0.05), color = "red", size = 1) 
-
-ggplot(data=est.param.100, aes(x = beta)) +
-  geom_histogram(bins = 30) +
-  geom_vline(data = est.param.100, aes(xintercept = mean(beta)), linetype = "dashed", size = 1) + 
-  geom_vline(aes(xintercept=0.9), color = "red", size = 1)
-
-ggplot(data=est.param.100, aes(x = theta)) +
-  geom_histogram(bins = 30) +
-  geom_vline(data = est.param.100, aes(xintercept = mean(theta)), linetype = "dashed", size = 1) + 
-  geom_vline(aes(xintercept=0), color = "red", size = 1) 
+# Plot the results in replications
+p = ggplot(data = estimate.result, aes(x=estimation)) + geom_density(aes(fill=n), alpha = 0.4) 
+p = p + geom_vline(aes(xintercept=vl), data=vline.dat, color = "red", size = 1)
+p = p + facet_wrap( ~ parameter, scales = "free", ncol=5)
+p + scale_fill_brewer(palette = "Set1") +
+  labs(title = "Design 2 - Normal Distribution, Equation 1", 
+       subtitle = "mu = 0; omega = 0.01; alpha = 0.05; beta = 0.60, theta = 2", #change the tit
+       caption = "The vertical line indicates the actual parameters of simulation")
