@@ -1,9 +1,12 @@
 library(timeSeries)
+library(ggplot2)
+library(tidyr)
+library(psych)
 
 ## (0) Setting simulation parameters ###############
 
 R = 100 # num of replicate
-n = 100 # num of obs
+n = 1000 # num of obs
 
 #(mu, omega, alpha, beta, theta)
 design = 1
@@ -157,6 +160,49 @@ for (i in 1:R){
 # estimate averaring over replicates
 est = colMeans(mat) 
 sd.est = colSds(mat) 
-
+# reported results
 est
 sd.est
+
+# visualize
+if (n == 100){
+  est.param.100 = data.frame(n = rep("100", R), mat)
+  names(est.param.100) = c("n","mu", "omega", "alpha", "beta", "theta")
+  est.param.100 = gather(est.param.100, parameter, estimation, mu:theta, factor_key=TRUE)
+}
+
+if (n==1000){
+  est.param.1000 = data.frame(n = rep("1000", R), mat)
+  names(est.param.1000) = c("n","mu", "omega", "alpha", "beta", "theta")
+  est.param.1000 = gather(est.param.1000, parameter, estimation, mu:theta, factor_key=TRUE)
+}
+est.param.1000 = data.frame(n = rep("1000", R), mat)
+names(est.param.1000) = c("n","mu", "omega", "alpha", "beta", "theta")
+
+estimate.result = rbind(est.param.100, est.param.1000)
+
+est.param = est.param.1000
+ggplot(data=est.param.100, aes(x = mu)) +
+  geom_histogram(bins = 30) +
+  geom_vline(data = est.param.100, aes(xintercept = mean(mu)), linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept=0), color = "red", size = 1) 
+
+ggplot(data=est.param.100, aes(x = omega)) +
+  geom_histogram(bins = 30) +
+  geom_vline(data = est.param.100, aes(xintercept = mean(omega)), linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept=0.01), color = "red", size = 1)
+
+ggplot(data=est.param.100, aes(x = alpha)) +
+  geom_histogram(bins = 30) +
+  geom_vline(data = est.param.100, aes(xintercept = mean(alpha)), linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept=0.05), color = "red", size = 1) 
+
+ggplot(data=est.param.100, aes(x = beta)) +
+  geom_histogram(bins = 30) +
+  geom_vline(data = est.param.100, aes(xintercept = mean(beta)), linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept=0.9), color = "red", size = 1)
+
+ggplot(data=est.param.100, aes(x = theta)) +
+  geom_histogram(bins = 30) +
+  geom_vline(data = est.param.100, aes(xintercept = mean(theta)), linetype = "dashed", size = 1) + 
+  geom_vline(aes(xintercept=0), color = "red", size = 1) 
