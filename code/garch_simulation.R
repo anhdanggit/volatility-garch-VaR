@@ -6,13 +6,13 @@ library(ggplot2)
 ## (0) Setting simulation parameters ###############
 
 R = 100 # num of replicate
-n = 1000 # num of obs
+n = 100 # num of obs
 
 #(mu, omega, alpha, beta, theta)
 design = 2
 
 #equation of ht
-eq = 1 
+eq = 2
 
 #distribution of zt
 dist = "norm" 
@@ -180,19 +180,25 @@ if (n==1000){
   est.param.1000 = gather(est.param.1000, parameter, estimation, mu:theta, factor_key=TRUE)
 }
 
+#--------------------------------------------------------#
+
+colMeans(mat)
+colSds(mat)
+
 estimate.result = rbind(est.param.100, est.param.1000)
-#write.csv(estimate.result, file = "results/design2_eq1_norm.csv")
+#write.csv(estimate.result, file = "results/design2_eq1_std.csv")
 
 ## (4) Plot ##############################################
 
 # set reference lines
-vline.dat <- data.frame(parameter=levels(estimate.result$parameter), vl= c(0, 0.01, 0.05, 0.6, 2)) # change
+vline.dat <- data.frame(parameter=levels(estimate.result$parameter), vl= c(0, 0.01, 0.05, 0.9, 0)) # change
 
 # Plot the results in replications
 p = ggplot(data = estimate.result, aes(x=estimation)) + geom_density(aes(fill=n), alpha = 0.4) 
 p = p + geom_vline(aes(xintercept=vl), data=vline.dat, color = "red", size = 1)
-p = p + facet_wrap( ~ parameter, scales = "free", ncol=5)
+p = p + facet_wrap( ~ parameter, scales = "free", nrow=5)
 p + scale_fill_brewer(palette = "Set1") +
-  labs(title = "Design 2 - Normal Distribution, Equation 1", 
-       subtitle = "mu = 0; omega = 0.01; alpha = 0.05; beta = 0.60, theta = 2", #change the tit
+  labs(title = "Design 1 - Standardized Distribution, Equation 2", 
+       subtitle = "mu = 0; omega = 0.01; alpha = 0.05; beta = 0.9, theta = 0", #change the tit
        caption = "The vertical line indicates the actual parameters of simulation")
+
