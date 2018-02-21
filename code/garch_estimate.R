@@ -333,8 +333,8 @@ for.model_6 = forecast_garch(model_6)
 # (7.2) Diagnostics ####
 
 # Apply model!!!!!-------#
-model = model_1
-for.model = for.model_1
+model = model_2
+for.model = for.model_2
 #------------------------#
 
 # in-sample
@@ -342,18 +342,17 @@ show(model)
 
 # out-sample
 accuracy.vol(for.model)
-jarque.bera.test(std.res(for.model))
+#jarque.bera.test(std.res(for.model))
 boxtest.z(for.model)
 boxtest.sqz(for.model)
 archtest.z(for.model)
-jarque.bera.test(std.res(for.model))
 
 
 # (7.3) Plot Models ####
 
 # Apply model!!!!!-------#
-model = model_2
-for.model = for.model_2
+model = model_3
+for.model = for.model_3
 #------------------------#
 
 show(model)
@@ -364,8 +363,10 @@ plot(for.model)
 # (7) VaR Test ####
 
 # Apply model!!!!!-------#
-model = model_3
-for.model = for.model_3
+
+model = model_6
+for.model = for.model_6
+
 #------------------------#
 
 ## In Sample
@@ -391,17 +392,18 @@ test3.explain(hit.in, set = "in-sample")
 ## Out-sample
 
 # Apply model!!!!!-------#
-model = model_6
-for.model = for.model_6
+model = model_4
+for.model = for.model_4
+
 #------------------------#
 show(model)
 
-mu = 0.0006 # change the estimated par
+mu = 0.0002 # change the estimated par
 sigma = 1
 lambda = -0.5
 skew = 1
-shape = 6.744934 # change the estimated par
-dist = "std"
+shape = 6.7449 # change the estimated par
+dist = "norm"
 
 VaR.out = VaR.outsample(for.model, dist, alpha = 0.05, 
                           mu, sigma, lambda, skew, shape)
@@ -430,3 +432,33 @@ ylim = c(-0.03, 0)
 plot.ts(VaR.out, ylim=ylim)
 par(new=TRUE)
 plot.ts(spyder.daily[1998:length(spyder.daily)], col="red", ylim=ylim)
+
+
+# (8) Riskmetriks ####
+riskmetrik.spec = ugarchspec(mean.model=list(armaOrder=c(1,1), include.mean=TRUE),
+                 variance.model=list(model="iGARCH"), fixed.pars = list(omega = 0))
+
+riskmetrik.model = ugarchfit(spec = riskmetrik.spec, data = spyder.daily, out.sample = 500)
+show(riskmetrik.model)
+
+for.riskmetrik = ugarchforecast(riskmetrik.model, data=NULL, n.head=1, n.roll = 499, out.sample = 500)
+plot(for.riskmetrik)
+
+risk.var = for.riskmetrik@forecast$sigmaFor[1,]^2
+garch.var = for.model_1@forecast$sigmaFor[1,]^2
+egarch.var = for.model_2@forecast$sigmaFor[1,]^2
+rv = dat$RV[1998:length(dat$RV)]
+
+df = data.frame(time = 1:length(risk.var), risk = risk.var, garch = garch.var, egarch = egarch.var, rv = rv)
+
+
+## Plot 
+ggplot(data = df, aes(x= time, y = risk, color = "Riskmetriks")) + 
+        geom_line(size = 1) +
+        geom_line(aes(y=rv, color = "Realized Variance"), size = 1, alpha = 0.5) + 
+        geom_line(aes(y = egarch, color = "EGARCH-ged"), size = 1.2, alpha=0.5) +
+        scale_colour_manual('Model:', values = c('Riskmetriks'='red','EGARCH-ged'='blue', "Realized Variance" = "gray")) +
+        theme(legend.position="top") +
+        theme_hc()
+        
+     
