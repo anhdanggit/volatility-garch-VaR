@@ -102,23 +102,6 @@ boxplot(for.risk.var, for.egarch.var, for.rv, names = c("RiskMetrics", "GARCH", 
         col = c(2, 4, 3), ylab = "Est. Var", 
         main = "Boxplot for Estimated Variance Comparison (Out-of-sample)")
 
-# In-sample
-
-# Time series
-plot(rv, col=3, lty=2, main = "In-sample Variance Estimation", 
-     ylab = "Estimated Variance")
-lines(risk.var, col=2, lty=1)
-lines(egarch.var, col=4, lty=2)
-l1 = as.expression("RV")
-l2 = as.expression("RiskMetrics")
-l3 = as.expression("GARCH")
-legend("topright", c(l1, l2, l3), col=c(3,2,4), lty=c(2,1,2), bty="n", cex=0.7)
-
-# Box plot
-boxplot(risk.var, egarch.var, rv, names = c("RiskMetrics", "GARCH", "RV"),  
-        col = 2:4, ylab = "Estimated Variance", 
-        main = "Boxplot for Estimated Variance Comparison (In-sample)")
-
 
 ##### AR estimation for RV ####
 library(FitAR)
