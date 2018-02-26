@@ -305,8 +305,8 @@ test3.explain = function(hit, set) {
 # (7.1) GARCH Estimate ####
 
 # Generalized error
-model_1 = model_garch(garch.model = "GARCH", garch.order = c(2,1), dist = "ged")
-model_2 = model_garch(garch.model = "eGARCH", garch.order = c(2,1), dist = "ged")
+model_1 = model_garch(garch.model = "GARCH", garch.order = c(1,1), dist = "ged")
+model_2 = model_garch(garch.model = "eGARCH", garch.order = c(1,1), dist = "ged")
 model_2B = model_garch(garch.model = "TGARCH", garch.order = c(1,1), dist = "ged")
 model_2C = model_garch(garch.model = "apARCH", garch.order = c(1,1), dist = "ged")
 
@@ -392,8 +392,8 @@ test3.explain(hit.in, set = "in-sample")
 ## Out-sample
 
 # Apply model!!!!!-------#
-model = model_4
-for.model = for.model_4
+model = model_1
+for.model = for.model_1
 
 #------------------------#
 show(model)
@@ -427,6 +427,9 @@ ggplot(df, aes(x=x, y = y)) +
 test1.uncond(hit.out)
 test2.ind(hit.out)
 test3.explain(hit.out, set = "out-sample")
+
+# test of unc by the package
+VaRTest(alpha = 0.05, actual = spyder.daily[1998:length(spyder.daily)], VaR = VaR.out)
 
 ylim = c(-0.03, 0)
 plot.ts(VaR.out, ylim=ylim)
