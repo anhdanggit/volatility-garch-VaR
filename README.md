@@ -1,6 +1,14 @@
 # garch_VaR
-Simulate and estimate volatility by GARCH with/without leverage, riskmetriks. VaR compute and test on VaR Violation
+Simulate and estimate volatility by GARCH with/without leverage, riskmetriks. VaR compute and test on VaR Violation.
 These codes use the package `rugarch` for Volatitly models
+
+**Code files**
+1. `Financial_Econometrics.R`: clean, summarize, and plot the daily return data
+2. `garch_simulation.R`: simulate and compare the performance of different GARCH models under different distribution 
+3. `interval_graph.R`: compare the estimated intervals of coefficient from different set-up of simulation
+4. `garch_estimate.R`: GARCH and Value-ar-Risk estimate on daily return data + diagnostics in-sample/out-sample
+
+
 
 ## 1. GARCH
 
